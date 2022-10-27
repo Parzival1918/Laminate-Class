@@ -251,6 +251,80 @@ classdef Laminate < handle
 
             obj.stressAngle = originalAngle;
         end
+
+        function lamina_stresses = lamina_stresses_in_plane(obj, angle, angle_stress, stress_applied)
+            arguments
+                obj
+                angle = 0
+                angle_stress = 0
+                stress_applied (3,1) {mustBeFloat} = [5;0;0]
+            end
+            
+            obj.stress = stress_applied;
+            
+            obj.stressAngle = 0;
+            S_c = obj.S;
+            obj.stressAngle = angle;
+
+            lamina_stresses = zeros([3 length(obj.laminae)]);
+            
+            for k = 1:length(obj.laminae)
+                lamina_k = obj.laminae(k);
+                Ck_r = lamina_k.C;
+                C_k = [Ck_r(1,1) Ck_r(1,2) Ck_r(1,6); ...
+                      Ck_r(2,1) Ck_r(2,2) Ck_r(2,6); ...
+                      Ck_r(6,1) Ck_r(6,2) Ck_r(6,6)];
+
+                angle_k = obj.angles(k);
+                U_k = U(angle_k - (angle+angle_stress));
+                
+                lamina_stresses(:,k) = C_k*U_k*S_c*stress_applied;
+            end
+        end
+
+        function lamina_stresses = lamina_stresses_in_plane_angle(obj, angle, stress_applied)
+            arguments
+                obj
+                angle = 0
+                stress_applied (3,1) {mustBeFloat} = [5;0;0]
+            end
+            
+            obj.stress = stress_applied;
+            
+            obj.stressAngle = 0;
+            S_c = obj.S;
+            obj.stressAngle = angle;
+
+            lamina_stresses = zeros([length(linspace(0,90,30)) 3 length(obj.laminae)]);
+            pos = 1;
+            for angle_it = linspace(0,90,30)
+                for k = 1:length(obj.laminae)
+                    lamina_k = obj.laminae(k);
+                    Ck_r = lamina_k.C;
+                    C_k = [Ck_r(1,1) Ck_r(1,2) Ck_r(1,6); ...
+                        Ck_r(2,1) Ck_r(2,2) Ck_r(2,6); ...
+                        Ck_r(6,1) Ck_r(6,2) Ck_r(6,6)];
+
+                    angle_k = obj.angles(k);
+                    U_k = U(angle_k - (angle_it+angle));
+
+                    lamina_stresses(pos,:,k) = C_k*U_k*S_c*stress_applied;
+                end
+                pos = pos + 1;
+            end
+
+            figure;
+            hold on;
+            for k = 1:length(obj.laminae)
+                plot(linspace(0,90,30),lamina_stresses(:,1,k));
+            end
+            hold off;
+        end
     end
 end
 
+function val = U(angle)
+    val = [cosd(angle)^2 sind(angle)^2 cosd(angle)*sind(angle); ...
+           sind(angle)^2 cosd(angle)^2 -cosd(angle)*sind(angle); ...
+           -2*cosd(angle)*sind(angle) 2*cosd(angle)*sind(angle) cosd(angle)^2 - sind(angle)^2];
+end
