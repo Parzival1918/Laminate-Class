@@ -216,12 +216,16 @@ classdef CompositeComponents < handle
                     obj.reinforcementE1 = 72.3;
                     obj.reinforcement_density = 2.58;
                     obj.reinforcementv12 = 0.2;
+                    obj.calc_property('reinforcement','G');
+                    obj.calc_property('reinforcement','K');
                 case 'S2-glass fibres'
                     %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
                     obj.reinforcement_type = 'fibre';
                     obj.reinforcementE1 = 86.9;
                     obj.reinforcement_density = 2.46;
                     obj.reinforcementv12 = 0.22;
+                    obj.calc_property('reinforcement','G');
+                    obj.calc_property('reinforcement','K');
             end
         end
         

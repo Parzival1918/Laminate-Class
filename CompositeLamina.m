@@ -4,8 +4,8 @@ classdef CompositeLamina < handle
     %   Detailed explanation goes here
     
     properties (SetAccess = private)
-        S (6,6) {mustBeFloat} = zeros(6)
-        C (6,6) {mustBeFloat} = zeros(6)
+        S (6,6) double {mustBeFloat} = zeros(6)
+        C (6,6) double {mustBeFloat} = zeros(6)
 
         laminaE1 (1,1) double {mustBeFloat} = 0
         laminaE2 (1,1) double {mustBeFloat} = 0
@@ -229,7 +229,7 @@ classdef CompositeLamina < handle
             end
         end
 
-        function G = v_angle(obj, angles, is_plot)
+        function v = v_angle(obj, angles, is_plot)
             arguments
                 obj CompositeLamina
                 angles (1,:) double {mustBeFloat} = linspace(0,90,30)
