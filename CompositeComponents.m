@@ -5,30 +5,43 @@ classdef CompositeComponents < handle
     %   Detailed explanation goes here
 
     properties 
-        reinforcementE1 (1,1) {mustBeFloat} = 0 %Reinforcement young's 
+        reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's 
                                                 % modulus
-        matrixE1 (1,1) {mustBeFloat} = 0
-        reinforcementv12 (1,1) {mustBeFloat} = 0
-        matrixv12 (1,1) {mustBeFloat} = 0
-        reinforcementG12 (1,1) {mustBeFloat} = 0
-        matrixG12 (1,1) {mustBeFloat} = 0
-        reinforcementK (1,1) {mustBeFloat} = 0 %Reinforcement bulk modulus
-        matrixK (1,1) {mustBeFloat} = 0
+        matrixE1 (1,1) double {mustBeFloat} = 0
+        reinforcementv12 (1,1) double {mustBeFloat} = 0
+        matrixv12 (1,1) double {mustBeFloat} = 0
+        reinforcementG12 (1,1) double {mustBeFloat} = 0
+        matrixG12 (1,1) double {mustBeFloat} = 0
+        reinforcementK (1,1) double {mustBeFloat} = 0 %Reinforcement bulk modulus
+        matrixK (1,1) double {mustBeFloat} = 0
+        
+        reinforcement_density (1,1) double {mustBeFloat} = 0
+        matrix_denisty (1,1) double {mustBeFloat} = 0
 
         E_units char {mustBeMember(E_units,{'GPa','MPa','Pa'})} = 'GPa'
         v_units char {mustBeMember(v_units,{'unitless'})} = 'unitless'
         G_units char {mustBeMember(G_units,{'GPa','MPa','Pa'})} = 'GPa'
         K_units char {mustBeMember(K_units,{'GPa','MPa','Pa'})} = 'GPa'
+        density_units char {mustBeMember(density_units,{'g/cm3'})} = 'g/cm3'
+
+        reinforcement_type char {mustBeMember(reinforcement_type, ...
+                           {'fibre'})} = 'fibre'
+        matrix_type char {mustBeMember(matrix_type, ...
+                    {'thermoset','thermoplastic'})} = 'thermoset'
     end
     
     methods
         function obj = CompositeComponents(varargin)
             %COMPOSITECOMPONENTS Construct an instance of this class
             %   Detailed explanation goes here
-            narginchk(1,8);
+            narginchk(0,8);
             switch nargin
                 case 1
-                    obj.reinforcementE1 = varargin{1};
+                    if isa(varargin{1},'double')
+                        obj.reinforcementE1 = varargin{1};
+                    elseif ischar(class(varargin{1}))
+                        obj.assign_reinforcement_material(varargin{1})
+                    end
                 case 2
                     obj.reinforcementE1 = varargin{1};
                     obj.matrixE1 = varargin{2};
@@ -175,6 +188,55 @@ classdef CompositeComponents < handle
                 end
             end
         end
+
+        function obj = assign_reinforcement_material(obj, name)
+            %METHOD1 Summary: Assign material properties of the
+            %reinforcement from existing materials in the databse
+            %   Detailed explanation goes here
+            arguments
+                obj CompositeComponents
+                name {mustBeMember(name,{'carbon fibres','A-glass fibres',...
+                     'C-glass fibres','E-glass fibres','S2-glass fibres'})}
+            end
+            
+            switch name
+                case 'A-glass fibres'
+                    %https://textilelearner.net/glass-fiber-types-properties/
+                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcementE1 = 72;
+                    obj.reinforcement_density = 2.44;
+                case 'C-glass fibres'
+                    %https://textilelearner.net/glass-fiber-types-properties/
+                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcementE1 = 69;
+                    obj.reinforcement_density = 2.56;
+                case 'E-glass fibres'
+                    %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
+                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcementE1 = 72.3;
+                    obj.reinforcement_density = 2.58;
+                    obj.reinforcementv12 = 0.2;
+                case 'S2-glass fibres'
+                    %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
+                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcementE1 = 86.9;
+                    obj.reinforcement_density = 2.46;
+                    obj.reinforcementv12 = 0.22;
+            end
+        end
+        
+        %{
+        function obj = assign_matrix_material(obj, name)
+            arguments
+                obj CompositeComponents
+                name {mustBeMember(name,{})}
+            end
+            
+            switch name
+                case 
+            end
+        end
+        %}
     end
 end
 
