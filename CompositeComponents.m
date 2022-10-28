@@ -87,18 +87,18 @@ classdef CompositeComponents < handle
             end
         end
         
-        function obj = calc_property(obj, fibre_or_matrix, property)
+        function obj = calc_property(obj, reinforcement_or_matrix, property)
             %METHOD1 Summary: Update one of the material properties using
             %values of other ones
             %   Detailed explanation goes here
             arguments
                 obj CompositeComponents
-                fibre_or_matrix {mustBeMember(fibre_or_matrix, ...
-                                {'fibre','matrix'})} = 'fibre'
+                reinforcement_or_matrix {mustBeMember(reinforcement_or_matrix, ...
+                                {'reinforcement','matrix'})} = 'reinforcement'
                 property {mustBeMember(property,{'E','v','G','K'})} = 'G'
             end
             
-            if strcmp(fibre_or_matrix,'fibre')
+            if strcmp(reinforcement_or_matrix,'reinforcement')
                 if strcmp(property,'E')
                     if ne(obj.reinforcementG12,0) && ...
                        ne(obj.reinforcementv12,0)
