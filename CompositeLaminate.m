@@ -279,7 +279,7 @@ classdef CompositeLaminate < handle
                 k_i = k(i);
                 lamina_k = obj.laminae(k_i);
                 C_k = smaller_mat(lamina_k.C);
-                U_k = U(obj.lamina_angles(k_i));
+                U_k = U(obj.lamina_angles(k_i) + angle);
 
                 stress_out = C_k*U_k*S_c*stress;
             end
@@ -304,7 +304,7 @@ classdef CompositeLaminate < handle
                     k_j = k(j);
                     lamina_k = obj.laminae(k_j);
                     C_k = smaller_mat(lamina_k.C);
-                    U_k = U(obj.lamina_angles(k_j));
+                    U_k = U(obj.lamina_angles(k_j) + angles(i));
 
                     stress_out(:,i) = C_k*U_k*S_c*stress;
                 end
@@ -315,6 +315,7 @@ classdef CompositeLaminate < handle
                 plot(angles,stress_out(1,:));
                 xlabel("Angle (º)");
                 ylabel("In-plane Stress in the Fibre Direction");
+                legend("stress");
             end
         end
     end
