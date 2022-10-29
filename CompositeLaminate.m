@@ -14,11 +14,14 @@ classdef CompositeLaminate < handle
         laminateG12 (1,1) double {mustBeFloat} = 0
         laminateIR121 (1,1) double {mustBeFloat} = 0
         laminateIR122 (1,1) double {mustBeFloat} = 0
+
+        is_symmetric (1,1) logical = false
+        is_balanced (1,1) logical = false
     end
 
     properties
         laminae (1,:) CompositeLamina 
-        lamina_angles (1,:) double {mustBeFloat} 
+        lamina_angles (1,:) double {mustBeFloat,mustBe90negpos(lamina_angles)} 
         thicknesses (1,:) double {mustBeFloat}
     end
     
@@ -37,6 +40,34 @@ classdef CompositeLaminate < handle
             obj.laminae = laminae_in;
             obj.lamina_angles = angles;
             obj.thicknesses = t;
+        end
+
+        function is_symmetric = get.is_symmetric(obj)
+            angles = obj.lamina_angles;
+            angles_fliped = flip(obj.lamina_angles);
+
+            if sum(angles == angles_fliped)/length(angles) == 1
+                is_symmetric = true;
+            else
+                is_symmetric = false;
+            end
+        end
+
+        function is_balanced = get.is_balanced(obj)
+            angles = obj.lamina_angles;
+            angles(angles == 0) = [];
+            angles(angles == 90) = [];
+
+            if isempty(angles)
+                is_balanced = false;
+            else
+                sumation = sum(angles);
+                if sumation == 0
+                    is_balanced = true;
+                else
+                    is_balanced = false;
+                end
+            end
         end
         
         function S = get.S(obj)
@@ -330,6 +361,15 @@ end
 function mustBeMaxLaminaeAmount(obj,k)
     if k > length(obj.laminae)
         error("Trying to access properties of a Laminae that is not in the Laminate.")
+    end
+end
+
+function mustBe90negpos(angles)
+    for i = 1:length(angles) 
+        angle = angles(i);
+        if angle < -90 || angle > 90
+            error("Angle must be between -90º and 90º.")
+        end
     end
 end
 
