@@ -57,7 +57,6 @@ classdef CompositeLaminate < handle
                         Sij_bar = inv(U(anglek))*Sk*T(anglek);
                         sumSij = sumSij + Sij_bar(i,j)*tk;
                     end
-                    %}
                     S(i,j) = sumSij/sumt;
                 end
             end
@@ -194,12 +193,142 @@ classdef CompositeLaminate < handle
                 legend("G12'");
             end
         end
+
+        function v = v_angle(obj, angles, is_plot)
+            arguments
+                obj CompositeLaminate
+                angles (1,:) double {mustBeFloat} = linspace(0,90,30)
+                is_plot (1,1) logical = true
+            end
+            
+            Sbar = obj.S_angle(angles);
+            v = zeros([2 length(Sbar)]);
+            
+            for i = 1:length(Sbar)
+                S_ = Sbar{i};
+                S11 = S_(1,1);
+                S22 = S_(2,2);
+                S12 = S_(1,2);
+                E1 = 1/S11;
+                E2 = 1/S22;
+                v12 = -S12*E1;
+                v21 = -S12*E2;
+                
+                v(:,i) = [v12;v21];
+            end
+
+            if is_plot
+                figure;
+                plot(angles,v(1,:),angles,v(2,:));
+                title("Composite v gainst loading angle");
+                xlabel("Angle (º)");
+                ylabel("Major and Minor Poissons Ratio (" + obj.laminae(1).compositeComponents.v_units + ")");
+                ylim([min(v,[],"all")-0.2 max(v,[],"all")+0.2])
+                legend("v12'","v21'");
+            end
+        end
+
+        function IR = IR_angle(obj, angles, is_plot)
+            arguments
+                obj CompositeLaminate
+                angles (1,:) double {mustBeFloat} = linspace(0,90,30)
+                is_plot (1,1) logical = true
+            end
+            
+            Sbar = obj.S_angle(angles);
+            IR = zeros([2 length(Sbar)]);
+            
+            for i = 1:length(Sbar)
+                S_ = Sbar{i};
+                S16 = S_(1,3);
+                S26 = S_(2,3);
+                S11 = S_(1,1);
+                S22 = S_(2,2);
+                E1 = 1/S11;
+                E2 = 1/S22;
+                nu121 = S16*E1;
+                nu122 = S26*E2;
+                
+                IR(:,i) = [nu121;nu122];
+            end
+
+            if is_plot
+                figure;
+                plot(angles,IR(1,:),angles,IR(2,:));
+                title("Composite interaction ratios gainst loading angle");
+                xlabel("Angle (º)");
+                ylabel("Interaction Ratios");
+                ylim([min(IR,[],"all")-0.2 max(IR,[],"all")+0.2])
+                legend("n121'","n122'");
+            end
+        end
+
+        function stress_out = stress_lamina_angle(obj,angle,k,stress)
+            arguments
+                obj CompositeLaminate
+                angle (1,1) double {mustBeFloat} = 0
+                k (1,1) double {mustBeFloat,mustBeMaxLaminaeAmount(obj,k)} = 1
+                stress (3,1) double {mustBeFloat} = [10;0;0]
+            end
+            
+            stress_out = zeros([3 1]);
+            S_c = obj.S_angle(angle);
+            S_c = S_c{1};
+
+            for i = 1:length(k)
+                k_i = k(i);
+                lamina_k = obj.laminae(k_i);
+                C_k = smaller_mat(lamina_k.C);
+                U_k = U(obj.lamina_angles(k_i));
+
+                stress_out = C_k*U_k*S_c*stress;
+            end
+        end
+
+        function stress_out = stress_lamina_angles(obj,k,angles,stress,is_plot)
+            arguments
+                obj CompositeLaminate
+                k (1,1) double {mustBeFloat,mustBeMaxLaminaeAmount(obj,k)} = 1
+                angles (1,:) double {mustBeFloat} = linspace(0,90,30)
+                stress (3,1) double {mustBeFloat} = [10;0;0]
+                is_plot (1,1) logical = true
+
+            end
+
+            stress_out = zeros([3 length(angles)]);
+
+            for i = 1:length(angles)
+                S_c = obj.S_angle(angles(i));
+                S_c = S_c{1};
+                for j = 1:length(k)
+                    k_j = k(j);
+                    lamina_k = obj.laminae(k_j);
+                    C_k = smaller_mat(lamina_k.C);
+                    U_k = U(obj.lamina_angles(k_j));
+
+                    stress_out(:,i) = C_k*U_k*S_c*stress;
+                end
+            end
+
+            if is_plot
+                figure;
+                plot(angles,stress_out(1,:));
+                xlabel("Angle (º)");
+                ylabel("In-plane Stress in the Fibre Direction");
+            end
+        end
     end
 end
 
 function mustBeSameSize(A,B)
     if ne(size(A,2),size(B,2))
         error("Inputs are not same sizes.")
+    end
+end
+
+function mustBeMaxLaminaeAmount(obj,k)
+    if k > length(obj.laminae)
+        error("Trying to access properties of a Laminae that is not in the Laminate.")
     end
 end
 

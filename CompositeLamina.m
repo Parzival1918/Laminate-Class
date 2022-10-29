@@ -132,6 +132,12 @@ classdef CompositeLamina < handle
                          0 0 0 0 0 S66];
             end
         end
+
+        function C = get.C(obj)
+            S_ = smaller_mat(obj.S);
+            C_ = inv(S_);
+            C =  bigger_mat(C_);
+        end
         
         function strain = apply_stress(obj,stress,angle)
             arguments
@@ -316,4 +322,13 @@ function mat = smaller_mat(m)
     mat = [m(1,1) m(1,2) 0; ...
            m(2,1) m(2,2) 0; ...
            0 0 m(6,6)];
+end
+
+function mat = bigger_mat(m)
+    mat = [m(1,1) m(1,2) 0 0 0 0; ...
+           m(2,1) m(2,2) 0 0 0 0; ...
+           0 0 0 0 0 0; ...
+           0 0 0 0 0 0; ...
+           0 0 0 0 0 0; ...
+           0 0 m(3,3) 0 0 0];
 end
