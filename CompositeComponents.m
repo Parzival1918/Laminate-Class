@@ -2,7 +2,9 @@ classdef CompositeComponents < handle
     %COMPOSITECOMPONENTS Summary: Use this class to add material properties
     %of the fibre and matrix materials. Then these properties can be used
     %to create a lamina.
-    %   Detailed explanation goes here
+    %   For now this class is very simple and can only work with materials
+    %   that are isotropic. I plan to add support for anisotropic materials
+    %   later on.
 
     properties 
         reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's modulus
@@ -17,11 +19,11 @@ classdef CompositeComponents < handle
         reinforcement_density (1,1) double {mustBeFloat} = 0 %Reinforcement material density
         matrix_denisty (1,1) double {mustBeFloat} = 0 %Matrix material density
 
-        E_units char {mustBeMember(E_units,{'GPa','MPa','Pa'})} = 'GPa'
-        v_units char {mustBeMember(v_units,{'unitless'})} = 'unitless'
-        G_units char {mustBeMember(G_units,{'GPa','MPa','Pa'})} = 'GPa'
-        K_units char {mustBeMember(K_units,{'GPa','MPa','Pa'})} = 'GPa'
-        density_units char {mustBeMember(density_units,{'g/cm3'})} = 'g/cm3'
+        E_units char {mustBeMember(E_units,{'GPa','MPa','Pa'})} = 'GPa' %Units of materials stifness
+        v_units char {mustBeMember(v_units,{'unitless'})} = 'unitless' %Units of materials poisson's ratios
+        G_units char {mustBeMember(G_units,{'GPa','MPa','Pa'})} = 'GPa' %Units of the shearing moodulus
+        K_units char {mustBeMember(K_units,{'GPa','MPa','Pa'})} = 'GPa' %Units of the bulk modulus
+        density_units char {mustBeMember(density_units,{'g/cm3'})} = 'g/cm3' %Units of the densities
 
         reinforcement_type char {mustBeMember(reinforcement_type, ... %Set the type of reinforcement that the composite will ahve
                            {'fibre'})} = 'fibre' 
@@ -91,7 +93,8 @@ classdef CompositeComponents < handle
         function obj = calc_property(obj, reinforcement_or_matrix, property)
             %CALC_PROPERTY Summary: Update one of the material properties using
             %values of other ones
-            %   Detailed explanation goes here
+            %   Calculate values of materials E, G, v or K using the
+            %   formulas (eg E = 2*G*(1 + v)) relating all 4 properties.
             arguments
                 obj CompositeComponents
                 reinforcement_or_matrix {mustBeMember(reinforcement_or_matrix, ...
@@ -191,9 +194,12 @@ classdef CompositeComponents < handle
         end
 
         function obj = assign_reinforcement_material(obj, name)
-            %METHOD1 Summary: Assign material properties of the
+            %ASSIGN_REINFORCEMENT_MATERIAL Summary: Assign material properties of the
             %reinforcement from existing materials in the databse
-            %   Detailed explanation goes here
+            %   Use the properties of the materials in the database in your
+            %   project. I am manually adding them, so maybe an improvement
+            %   would be to add some way of scrapping web data or adding
+            %   from text files.
             arguments
                 obj CompositeComponents
                 name {mustBeMember(name,{'carbon fibres','A-glass fibres',...
