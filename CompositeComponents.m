@@ -5,18 +5,17 @@ classdef CompositeComponents < handle
     %   Detailed explanation goes here
 
     properties 
-        reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's 
-                                                % modulus
-        matrixE1 (1,1) double {mustBeFloat} = 0
-        reinforcementv12 (1,1) double {mustBeFloat} = 0
-        matrixv12 (1,1) double {mustBeFloat} = 0
-        reinforcementG12 (1,1) double {mustBeFloat} = 0
-        matrixG12 (1,1) double {mustBeFloat} = 0
+        reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's modulus
+        matrixE1 (1,1) double {mustBeFloat} = 0 %Matrix young's modulus
+        reinforcementv12 (1,1) double {mustBeFloat} = 0 %Reinforcement Poisson's ratio modulus
+        matrixv12 (1,1) double {mustBeFloat} = 0 %Matrix Poisson's ratio modulus
+        reinforcementG12 (1,1) double {mustBeFloat} = 0 %Reinforcement shear modulus
+        matrixG12 (1,1) double {mustBeFloat} = 0 %Matrix shear modulus
         reinforcementK (1,1) double {mustBeFloat} = 0 %Reinforcement bulk modulus
-        matrixK (1,1) double {mustBeFloat} = 0
+        matrixK (1,1) double {mustBeFloat} = 0 %Matrix bulk modulus
         
-        reinforcement_density (1,1) double {mustBeFloat} = 0
-        matrix_denisty (1,1) double {mustBeFloat} = 0
+        reinforcement_density (1,1) double {mustBeFloat} = 0 %Reinforcement material density
+        matrix_denisty (1,1) double {mustBeFloat} = 0 %Matrix material density
 
         E_units char {mustBeMember(E_units,{'GPa','MPa','Pa'})} = 'GPa'
         v_units char {mustBeMember(v_units,{'unitless'})} = 'unitless'
@@ -24,23 +23,25 @@ classdef CompositeComponents < handle
         K_units char {mustBeMember(K_units,{'GPa','MPa','Pa'})} = 'GPa'
         density_units char {mustBeMember(density_units,{'g/cm3'})} = 'g/cm3'
 
-        reinforcement_type char {mustBeMember(reinforcement_type, ...
-                           {'fibre'})} = 'fibre'
-        matrix_type char {mustBeMember(matrix_type, ...
-                    {'thermoset','thermoplastic'})} = 'thermoset'
+        reinforcement_type char {mustBeMember(reinforcement_type, ... %Set the type of reinforcement that the composite will ahve
+                           {'fibre'})} = 'fibre' 
+        matrix_type char {mustBeMember(matrix_type, ... %Set the type of matrix that the composite will have
+                    {'thermoset','thermoplastic'})} = 'thermoset' 
     end
     
     methods
         function obj = CompositeComponents(varargin)
             %COMPOSITECOMPONENTS Construct an instance of this class
-            %   Detailed explanation goes here
+            %   Can construct the class with some parameters already set,
+            %   or call with one char argument out of the accepted ones in 
+            %   ASSIGN_REINFORCEMENT_MATERIAL() method. 
             narginchk(0,8);
             switch nargin
                 case 1
                     if isa(varargin{1},'double')
                         obj.reinforcementE1 = varargin{1};
                     elseif ischar(class(varargin{1}))
-                        obj.assign_reinforcement_material(varargin{1})
+                        obj.assign_reinforcement_material(varargin{1});
                     end
                 case 2
                     obj.reinforcementE1 = varargin{1};
@@ -88,7 +89,7 @@ classdef CompositeComponents < handle
         end
         
         function obj = calc_property(obj, reinforcement_or_matrix, property)
-            %METHOD1 Summary: Update one of the material properties using
+            %CALC_PROPERTY Summary: Update one of the material properties using
             %values of other ones
             %   Detailed explanation goes here
             arguments
