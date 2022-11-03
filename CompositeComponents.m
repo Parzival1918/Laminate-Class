@@ -5,7 +5,7 @@ classdef CompositeComponents < handle
     %   For now this class is very simple and can only work with materials
     %   that are isotropic. I plan to add support for anisotropic materials
     %   later on.
-
+    
     properties 
         reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's modulus
         matrixE1 (1,1) double {mustBeFloat} = 0 %Matrix young's modulus
@@ -26,9 +26,11 @@ classdef CompositeComponents < handle
         density_units char {mustBeMember(density_units,{'g/cm3'})} = 'g/cm3' %Units of the densities
 
         reinforcement_type char {mustBeMember(reinforcement_type, ... %Set the type of reinforcement that the composite will ahve
-                           {'fibre'})} = 'fibre' 
+                           {'long fibres','short fibres'})} = 'long fibres' 
         matrix_type char {mustBeMember(matrix_type, ... %Set the type of matrix that the composite will have
                     {'thermoset','thermoplastic'})} = 'thermoset' 
+        r (1,1) double {mustBeFloat} = 0.5 %Reinforcement radius
+        L (1,1) double {mustBeFloat} = 100 %Reinforcement half-length
     end
     
     methods
@@ -46,8 +48,12 @@ classdef CompositeComponents < handle
                         obj.assign_reinforcement_material(varargin{1});
                     end
                 case 2
-                    obj.reinforcementE1 = varargin{1};
-                    obj.matrixE1 = varargin{2};
+                    if isa(varargin{1},'double') && isa(varargin{2},'double')
+                        obj.reinforcementE1 = varargin{1};
+                        obj.matrixE1 = varargin{2};
+                    elseif ischar(class(varargin{1})) && ischar(class(varargin{2}))
+                        obj.assign_reinforcement_material(varargin{1},varargin{2});
+                    end
                 case 3
                     obj.reinforcementE1 = varargin{1};
                     obj.matrixE1 = varargin{2};
@@ -193,7 +199,7 @@ classdef CompositeComponents < handle
             end
         end
 
-        function obj = assign_reinforcement_material(obj, name)
+        function obj = assign_reinforcement_material(obj, name, length)
             %ASSIGN_REINFORCEMENT_MATERIAL Summary: Assign material properties of the
             %reinforcement from existing materials in the databse
             %   Use the properties of the materials in the database in your
@@ -204,22 +210,23 @@ classdef CompositeComponents < handle
                 obj CompositeComponents
                 name {mustBeMember(name,{'carbon fibres','A-glass fibres',...
                      'C-glass fibres','E-glass fibres','S2-glass fibres'})}
+                length {mustBeMember(length,{'short fibres','long fibres'})} = 'long fibres'
             end
             
             switch name
                 case 'A-glass fibres'
                     %https://textilelearner.net/glass-fiber-types-properties/
-                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcement_type = length;
                     obj.reinforcementE1 = 72;
                     obj.reinforcement_density = 2.44;
                 case 'C-glass fibres'
                     %https://textilelearner.net/glass-fiber-types-properties/
-                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcement_type = length;
                     obj.reinforcementE1 = 69;
                     obj.reinforcement_density = 2.56;
                 case 'E-glass fibres'
                     %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
-                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcement_type = length;
                     obj.reinforcementE1 = 72.3;
                     obj.reinforcement_density = 2.58;
                     obj.reinforcementv12 = 0.2;
@@ -227,7 +234,7 @@ classdef CompositeComponents < handle
                     obj.calc_property('reinforcement','K');
                 case 'S2-glass fibres'
                     %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
-                    obj.reinforcement_type = 'fibre';
+                    obj.reinforcement_type = length;
                     obj.reinforcementE1 = 86.9;
                     obj.reinforcement_density = 2.46;
                     obj.reinforcementv12 = 0.22;

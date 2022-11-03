@@ -17,6 +17,10 @@ classdef CompositeLamina < handle
         laminaK (1,1) double {mustBeFloat} = 0
         laminaIR121 (1,1) double {mustBeFloat} = 0
         laminaIR122 (1,1) double {mustBeFloat} = 0
+
+        n (1,1) double {mustBeFloat} = 0 %Dimensionless constant used in shear lag theory
+        s (1,1) double {mustBeFloat} = 0 %Reinforcement aspect ratio
+        st (1,1) double {mustBeFloat} = 0 %Stress transfer ratio, applicable for short fibres only
     end
 
     properties
@@ -95,6 +99,20 @@ classdef CompositeLamina < handle
             K = obj.laminaK;
 
             laminav23 = 1 - v21 - E2/(3*K);
+        end
+
+        function n = get.n(obj)
+            n = sqrt((2*obj.compositeComponents.matrixE1)/...
+                (obj.compositeComponents.reinforcementE1*...
+                (1+obj.compositeComponents.matrixv12)*log(1/obj.fibre_fraction)));
+        end
+
+        function s = get.s(obj)
+            s = obj.compositeComponents.L/obj.compositeComponents.r;
+        end
+
+        function st = get.st(obj)
+            st = 3/obj.n;
         end
 
         function S = get.S(obj)
@@ -303,6 +321,54 @@ classdef CompositeLamina < handle
                 legend("n121'","n122'");
             end
         end
+
+        function stress = short_fibre_stress(obj, position, strain)
+            %SHORT_FIBRE_STRESS Summary: Calculate the stress at a point x
+            %away from the fibre centre when the composite is under certain
+            %strain. Only used for short fibres, as for long fibre
+            %composites it is assumed stress is constant along the whole
+            %fibre.
+            %   Explain
+            arguments
+                obj CompositeLamina
+                position (1,1) double {mustBeFloat,mustBeLessThanOrEqualPositive(obj,position)} = 0
+                strain (1,1) double {mustBeFloat} = 0.01
+            end
+
+            if strcmp(obj.compositeComponents.reinforcement_type,'short fibres')
+                stress = obj.compositeComponents.reinforcementE1*strain*(1 - ...
+                cosh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s));
+            else
+                error("Method only available for short fibre composites.")
+            end
+        end
+
+        function shear = short_fibre_interfacial_shear(obj, position, strain)
+            %INTERFACIAL_SHEAR Summary: Calculate the shear stress at a point x
+            %away from the fibre centre when the composite is under certain
+            %strain. Only used for short fibres, as for long fibre
+            %composites it is assumed shear stress is 0.
+            %   Explain
+            arguments
+                obj CompositeLamina
+                position (1,1) double {mustBeFloat,mustBeLessThanOrEqualPositive(obj,position)} = 0
+                strain (1,1) double {mustBeFloat} = 0.01
+            end
+
+            if strcmp(obj.compositeComponents.reinforcement_type,'short fibres')
+                shear = (obj.n/2)*obj.compositeComponents.reinforcementE1*strain* ...
+                sinh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s);
+            else
+                error("Method only available for short fibre composites.")
+            end
+        end
+    end
+end
+
+function mustBeLessThanOrEqualPositive(obj,B)
+    A = obj.compositeComponents.L;
+    if B < -A || B > A
+        error("Argument value out of bounds. Position must be in range [-L, L].")
     end
 end
 
