@@ -21,6 +21,7 @@ classdef CompositeLamina < handle
         n (1,1) double {mustBeFloat} = 0 %Dimensionless constant used in shear lag theory
         s (1,1) double {mustBeFloat} = 0 %Reinforcement aspect ratio
         st (1,1) double {mustBeFloat} = 0 %Stress transfer ratio, applicable for short fibres only
+        modifiedE (1,1) double {mustBeFloat} = 0 %E'm value used in the modified shear lag theory
     end
 
     properties
@@ -32,6 +33,8 @@ classdef CompositeLamina < handle
                     'orthotropic','transversely isotropic'})} = 'transversely isotropic'
         loading_type char {mustBeMember(loading_type,{'plane stress',...
                     })} = 'plane stress'
+        short_fibre_theory char {mustBeMember(short_fibre_theory,{'shear lag theory',...
+                    'modified shear lag theory'})} = 'shear lag theory'
     end
     
     methods
@@ -113,6 +116,12 @@ classdef CompositeLamina < handle
 
         function st = get.st(obj)
             st = 3/obj.n;
+        end
+
+        function modifiedE = get.modifiedE(obj)
+            Ef = obj.compositeComponents.reinforcementE1;
+            Em = obj.compositeComponents.matrixE1;
+            modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
         end
 
         function S = get.S(obj)
@@ -336,8 +345,14 @@ classdef CompositeLamina < handle
             end
 
             if strcmp(obj.compositeComponents.reinforcement_type,'short fibres')
-                stress = obj.compositeComponents.reinforcementE1*strain*(1 - ...
-                cosh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s));
+                if strcmp(obj.short_fibre_theory,'shear lag theory')
+                    stress = obj.compositeComponents.reinforcementE1*strain*(1 - ...
+                    cosh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s));
+                else
+                    Ef = obj.compositeComponents.reinforcementE1;
+                    stress = strain*(Ef - (Ef - obj.modifiedE)* ...
+                    cosh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s));
+                end
             else
                 error("Method only available for short fibre composites.")
             end
@@ -356,8 +371,14 @@ classdef CompositeLamina < handle
             end
 
             if strcmp(obj.compositeComponents.reinforcement_type,'short fibres')
-                shear = (obj.n/2)*obj.compositeComponents.reinforcementE1*strain* ...
-                sinh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s);
+                if strcmp(obj.short_fibre_theory,'shear lag theory')
+                    shear = (obj.n/2)*obj.compositeComponents.reinforcementE1*strain* ...
+                    sinh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s);
+                else
+                    Ef = obj.compositeComponents.reinforcementE1;
+                    shear = (obj.n/2)*(Ef - obj.modifiedE)*strain* ...
+                    sinh((obj.n*position)/obj.compositeComponents.r)*sech(obj.n*obj.s);
+                end
             else
                 error("Method only available for short fibre composites.")
             end
