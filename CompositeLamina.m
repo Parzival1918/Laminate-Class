@@ -21,6 +21,7 @@ classdef CompositeLamina < handle
         n (1,1) double {mustBeFloat} = 0 %Dimensionless constant used in shear lag theory
         s (1,1) double {mustBeFloat} = 0 %Reinforcement aspect ratio
         st (1,1) double {mustBeFloat} = 0 %Stress transfer ratio, applicable for short fibres only
+        srm (1,1) double {mustBeFloat} = 0 %Aspect ratio which maximises stiffness, i.e. where Rule of Mixtures is observed (for short fibres)
         modifiedE (1,1) double {mustBeFloat} = 0 %E'm value used in the modified shear lag theory
     end
 
@@ -35,6 +36,8 @@ classdef CompositeLamina < handle
                     })} = 'plane stress'
         short_fibre_theory char {mustBeMember(short_fibre_theory,{'shear lag theory',... %Decide between shear lag theory or modified shear lag theory
                     'modified shear lag theory'})} = 'shear lag theory'
+        fibre_alignement char {mustBeMember(fibre_alignement,{'aligned','random 2D', ... %Alginement of fibres in the matrix
+            'random 3D'})} = 'aligned'
     end
     
     methods
@@ -48,13 +51,46 @@ classdef CompositeLamina < handle
             obj.compositeComponents = CC;
         end
 
+        function modifiedE = get.modifiedE(obj)
+            %Calculate E'm value, used in the modified shear lag theory
+            Ef = obj.compositeComponents.reinforcementE1;
+            Em = obj.compositeComponents.matrixE1;
+            modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
+        end
+
         function laminaE1 = get.laminaE1(obj)
             %Calculate lamina major Young's Modulus
             Ef = obj.compositeComponents.reinforcementE1;
             Em = obj.compositeComponents.matrixE1;
             ff = obj.fibre_fraction;
-
-            laminaE1 = Ef*ff + (1-ff)*Em;
+            if strcmp(obj.compositeComponents.reinforcement_type,"long fibres") 
+                laminaE1 = Ef*ff + (1-ff)*Em;
+            else
+                if strcmp(obj.short_fibre_theory,"shear lag theory")
+                    if strcmp(obj.fibre_alignement,"aligned")
+                        laminaE1 = ff*Ef*(1-(tanh(obj.n*obj.s)/(obj.n*obj.s))) + ...
+                            (1 - ff)*Em;
+                    elseif strcmp(obj.fibre_alignement,"random 2D")
+                        laminaE1 = (3/8)*ff*Ef*(1-(tanh(obj.n*obj.s)/(obj.n*obj.s))) + ...
+                            (1 - ff)*Em;
+                    else
+                        laminaE1 = (1/5)*ff*Ef*(1-(tanh(obj.n*obj.s)/(obj.n*obj.s))) + ...
+                            (1 - ff)*Em;
+                    end
+                else
+                    modE = obj.modifiedE;
+                    if strcmp(obj.fibre_alignement,"aligned")
+                        laminaE1 = ff*Ef*(1-(((Ef - modE)*tanh(obj.n*obj.s))/(Ef*obj.n*obj.s))) + ...
+                        (1 - ff)*Em;
+                    elseif strcmp(obj.fibre_alignement,"random 2D")
+                        laminaE1 = (3/8)*ff*Ef*(1-(((Ef - modE)*tanh(obj.n*obj.s))/(Ef*obj.n*obj.s))) + ...
+                        (1 - ff)*Em;
+                    else
+                        laminaE1 = (1/5)*ff*Ef*(1-(((Ef - modE)*tanh(obj.n*obj.s))/(Ef*obj.n*obj.s))) + ...
+                        (1 - ff)*Em;
+                    end
+                end
+            end
         end
 
         function laminaE2 = get.laminaE2(obj)
@@ -130,11 +166,8 @@ classdef CompositeLamina < handle
             st = 3/obj.n;
         end
 
-        function modifiedE = get.modifiedE(obj)
-            %Calculate E'm value, used in the modified shear lag theory
-            Ef = obj.compositeComponents.reinforcementE1;
-            Em = obj.compositeComponents.matrixE1;
-            modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
+        function srm = get.srm(obj)
+            srm = 10/obj.n;
         end
 
         function S = get.S(obj)
