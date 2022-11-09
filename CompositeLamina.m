@@ -4,19 +4,19 @@ classdef CompositeLamina < handle
     %   Detailed explanation goes here
     
     properties (SetAccess = private)
-        S (6,6) double {mustBeFloat} = zeros(6)
-        C (6,6) double {mustBeFloat} = zeros(6)
+        S (6,6) double {mustBeFloat} = zeros(6) %Compliance matrix
+        C (6,6) double {mustBeFloat} = zeros(6) %Stiffness matrix
 
-        laminaE1 (1,1) double {mustBeFloat} = 0
-        laminaE2 (1,1) double {mustBeFloat} = 0
-        laminav12 (1,1) double {mustBeFloat} = 0
-        laminav21 (1,1) double {mustBeFloat} = 0
-        laminav23 (1,1) double {mustBeFloat} = 0
-        laminaG12 (1,1) double {mustBeFloat} = 0
-        laminaG13 (1,1) double {mustBeFloat} = 0
-        laminaK (1,1) double {mustBeFloat} = 0
-        laminaIR121 (1,1) double {mustBeFloat} = 0
-        laminaIR122 (1,1) double {mustBeFloat} = 0
+        laminaE1 (1,1) double {mustBeFloat} = 0 %Lamina major Young's modulus
+        laminaE2 (1,1) double {mustBeFloat} = 0 %Lamina minor Young's modulus
+        laminav12 (1,1) double {mustBeFloat} = 0 %Lamina major Poisson's ratio
+        laminav21 (1,1) double {mustBeFloat} = 0 %Lamina minor Poisson's ratio
+        laminav23 (1,1) double {mustBeFloat} = 0 %Lamina v23 Poisson's ratio, matrix dominant directions
+        laminaG12 (1,1) double {mustBeFloat} = 0 %Lamina Shear modulus
+        laminaG13 (1,1) double {mustBeFloat} = 0 %Lamina Shear modulus in matrix dominant directions
+        laminaK (1,1) double {mustBeFloat} = 0 %Lamina Bulkk modulus
+        laminaIR121 (1,1) double {mustBeFloat} = 0 %Lamina Interaction Ratio n121
+        laminaIR122 (1,1) double {mustBeFloat} = 0 %Lamina Interaction Ratio n122
 
         n (1,1) double {mustBeFloat} = 0 %Dimensionless constant used in shear lag theory
         s (1,1) double {mustBeFloat} = 0 %Reinforcement aspect ratio
@@ -25,22 +25,22 @@ classdef CompositeLamina < handle
     end
 
     properties
-        compositeComponents CompositeComponents = CompositeComponents('E-glass fibres');
-        fibre_fraction (1,1) double {mustBeFloat} = 0.5
-        Halpin_Tsai_EqnParameter (1,1) double {mustBeFloat} = 1
+        compositeComponents CompositeComponents = CompositeComponents('E-glass fibres'); %CompositeComponents class instance containing the materials that the lamina has
+        fibre_fraction (1,1) double {mustBeFloat} = 0.5 %lamina fibre fraction
+        Halpin_Tsai_EqnParameter (1,1) double {mustBeFloat} = 1 %Halpin-Tsai parameter
 
-        lamina_type char {mustBeMember(lamina_type,{'isotropic',...
+        lamina_type char {mustBeMember(lamina_type,{'isotropic',... %Type of symmetries in the lamina, to reduce number of material properties needed to calculate S and C
                     'orthotropic','transversely isotropic'})} = 'transversely isotropic'
-        loading_type char {mustBeMember(loading_type,{'plane stress',...
+        loading_type char {mustBeMember(loading_type,{'plane stress',... %Type of loading the lamina is in
                     })} = 'plane stress'
-        short_fibre_theory char {mustBeMember(short_fibre_theory,{'shear lag theory',...
+        short_fibre_theory char {mustBeMember(short_fibre_theory,{'shear lag theory',... %Decide between shear lag theory or modified shear lag theory
                     'modified shear lag theory'})} = 'shear lag theory'
     end
     
     methods
         function obj = CompositeLamina(CC)
             %COMPOSITELAMINA Construct an instance of this class
-            %   Detailed explanation goes here
+            %   Can call with the materials to set in the lamina.
             arguments
                 CC CompositeComponents = CompositeComponents('E-glass fibres');
             end
@@ -49,6 +49,7 @@ classdef CompositeLamina < handle
         end
 
         function laminaE1 = get.laminaE1(obj)
+            %Calculate lamina major Young's Modulus
             Ef = obj.compositeComponents.reinforcementE1;
             Em = obj.compositeComponents.matrixE1;
             ff = obj.fibre_fraction;
@@ -57,6 +58,7 @@ classdef CompositeLamina < handle
         end
 
         function laminaE2 = get.laminaE2(obj)
+            %Calculate lamina minor Young's Modulus
             Ef = obj.compositeComponents.reinforcementE1;
             Em = obj.compositeComponents.matrixE1;
             e = obj.Halpin_Tsai_EqnParameter;
@@ -67,6 +69,7 @@ classdef CompositeLamina < handle
         end
 
         function laminaG12 = get.laminaG12(obj)
+            %Calculate lamina major shear modulus
             Gf = obj.compositeComponents.reinforcementG12;
             Gm = obj.compositeComponents.matrixG12;
             e = obj.Halpin_Tsai_EqnParameter;
@@ -77,6 +80,7 @@ classdef CompositeLamina < handle
         end
 
         function laminav12 = get.laminav12(obj)
+            %Calculate major poisson's ratio
             vf = obj.compositeComponents.reinforcementv12;
             vm = obj.compositeComponents.matrixv12;
             ff = obj.fibre_fraction;
@@ -85,10 +89,12 @@ classdef CompositeLamina < handle
         end
 
         function laminav21 = get.laminav21(obj)
+            %Calculate minor poisson's ratio
             laminav21 = obj.laminaE2*(obj.laminav12/obj.laminaE1);
         end
 
         function laminaK = get.laminaK(obj)
+            %Calculate lamina's bulk modulus
             Kf = obj.compositeComponents.reinforcementK;
             Km = obj.compositeComponents.matrixK;
             ff = obj.fibre_fraction;
@@ -97,6 +103,8 @@ classdef CompositeLamina < handle
         end
 
         function laminav23 = get.laminav23(obj)
+            %Calculate lamina's poisson's ratio in matrix dominant
+            %directions
             v21 = obj.laminav21;
             E2 = obj.laminaE2;
             K = obj.laminaK;
@@ -105,26 +113,32 @@ classdef CompositeLamina < handle
         end
 
         function n = get.n(obj)
+            %Calculate constant used in shear lag theory
             n = sqrt((2*obj.compositeComponents.matrixE1)/...
                 (obj.compositeComponents.reinforcementE1*...
                 (1+obj.compositeComponents.matrixv12)*log(1/obj.fibre_fraction)));
         end
 
         function s = get.s(obj)
+            %Calculate aspect ratio of reinforcement material
             s = obj.compositeComponents.L/obj.compositeComponents.r;
         end
 
         function st = get.st(obj)
+            %calculate stress transfer ratio. The minimum aspect ratio for
+            %which maximum stress is achieved in some point of the fibres
             st = 3/obj.n;
         end
 
         function modifiedE = get.modifiedE(obj)
+            %Calculate E'm value, used in the modified shear lag theory
             Ef = obj.compositeComponents.reinforcementE1;
             Em = obj.compositeComponents.matrixE1;
             modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
         end
 
         function S = get.S(obj)
+            %Calculate the compliance matrix of the lamina
             switch obj.lamina_type
                 case 'isotropic'
                     E1 = obj.laminaE1;
@@ -161,12 +175,20 @@ classdef CompositeLamina < handle
         end
 
         function C = get.C(obj)
+            %Calculate the stiffness matrix of the lamina
             S_ = smaller_mat(obj.S);
             C_ = inv(S_);
             C =  bigger_mat(C_);
         end
         
         function strain = apply_stress(obj,stress,angle)
+            %APPLY_STRESS Summary: Calculate the strain the lamina
+            %experiences under some stress conditions.
+            %   AApply a stress to the material, only being able to apple
+            %   it in plane, assuming that the lamina is an infinitely thin
+            %   sheet in the z-direction. Therefore can only enter values
+            %   of 11, 22, 16 in the stress tensor. Can apply this stress
+            %   at an angle from the principal axes of the lamina.
             arguments
                 obj CompositeLamina
                 stress (3,1) double {mustBeFloat} = [10;0;0]
@@ -187,6 +209,8 @@ classdef CompositeLamina < handle
         end
 
         function Sbar = S_angle(obj, angles)
+            %S_ANGLE Summary: Calculate the value of the compliance matrix
+            %of the lamina at different angles from the main lamina axes.
             arguments
                 obj CompositeLamina
                 angles (1,:) double {mustBeFloat} = 0
