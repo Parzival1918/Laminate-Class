@@ -27,6 +27,8 @@ classdef CompositeLamina < handle
         modifiedE (1,1) double {mustBeFloat} = -Inf %E'm value used in the modified shear lag theory
         criticalInterfacialShearStress (1,1) double {mustBeFloat} = -Inf %The critical value of shear stress where plasticity will start to occur
         criticalStress (1,1) double {mustBeFloat} = -Inf %The critical value of stress in fibre direction where plasticity will start to occur
+    
+        fibre_type (1,1) char 
     end
 
     properties
@@ -37,7 +39,7 @@ classdef CompositeLamina < handle
         lamina_type char {mustBeMember(lamina_type,{'isotropic',... %Type of symmetries in the lamina, to reduce number of material properties needed to calculate S and C
                     'orthotropic','transversely isotropic'})} = 'transversely isotropic'
         loading_type char {mustBeMember(loading_type,{'plane stress',... %Type of loading the lamina is in
-                    })} = 'plane stress'
+                    })} = 'plane stress' 
         short_fibre_theory char {mustBeMember(short_fibre_theory,{'shear lag theory',... %Decide between shear lag theory or modified shear lag theory
                     'modified shear lag theory'})} = 'shear lag theory'
         fibre_alignement char {mustBeMember(fibre_alignement,{'aligned','random 2D', ... %Alginement of fibres in the matrix
@@ -55,11 +57,17 @@ classdef CompositeLamina < handle
             obj.compositeComponents = CC;
         end
 
+        function fibre_type = get.fibre_type(obj)
+            fibre_type = obj.compositeComponents.reinforcement_type;
+        end
+
         function criticalInterfacialShearStress = get.criticalInterfacialShearStress(obj)
             if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
                 Ef = obj.compositeComponents.reinforcementE1;
                 critStrain = obj.compositeComponents.criticalStrain;
                 criticalInterfacialShearStress = (obj.n*Ef*critStrain*tanh(obj.n*obj.s))/2;
+            else
+                criticalInterfacialShearStress = -Inf;
             end
         end
 
@@ -72,6 +80,8 @@ classdef CompositeLamina < handle
 
                 criticalStress = ((2*critShear)/(obj.n*Ef))*...
                     ((ff*Ef + (1-ff)*Em)*coth(obj.n*obj.s) - (ff*Ef)/(obj.n*obj.s));
+            else
+                criticalStress = -Inf;
             end
         end
 
@@ -81,6 +91,8 @@ classdef CompositeLamina < handle
                 Ef = obj.compositeComponents.reinforcementE1;
                 Em = obj.compositeComponents.matrixE1;
                 modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
+            else
+                modifiedE = -Inf;
             end
         end
 
@@ -90,12 +102,16 @@ classdef CompositeLamina < handle
                 r = obj.compositeComponents.r;
                 intshear = obj.criticalInterfacialShearStress;
                 Lc = (fibrestressfu*r)/(2*intshear);
+            else
+                Lc = -Inf;
             end
         end
 
         function sc = get.sc(obj)
             if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
                 sc = obj.Lc/obj.compositeComponents.r;
+            else
+                sc = -Inf;
             end
         end
 
@@ -190,11 +206,13 @@ classdef CompositeLamina < handle
         end
 
         function n = get.n(obj)
-            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+            if strcmp(obj.fibre_type,"short fibres")
                 %Calculate constant used in shear lag theory
                 n = sqrt((2*obj.compositeComponents.matrixE1)/...
                     (obj.compositeComponents.reinforcementE1*...
                     (1+obj.compositeComponents.matrixv12)*log(1/obj.fibre_fraction)));
+            else
+                n = -Inf;
             end
         end
 
@@ -202,6 +220,8 @@ classdef CompositeLamina < handle
             if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
                 %Calculate aspect ratio of reinforcement material
                 s = obj.compositeComponents.L/obj.compositeComponents.r;
+            else
+                s = Inf;
             end
         end
 
@@ -210,12 +230,16 @@ classdef CompositeLamina < handle
                 %calculate stress transfer ratio. The minimum aspect ratio for
                 %which maximum stress is achieved in some point of the fibres
                 st = 3/obj.n;
+            else
+                st = -Inf;
             end
         end
 
         function srm = get.srm(obj)
             if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
                 srm = 10/obj.n;
+            else
+                srm = -Inf;
             end
         end
 
