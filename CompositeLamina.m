@@ -18,11 +18,15 @@ classdef CompositeLamina < handle
         laminaIR121 (1,1) double {mustBeFloat} = 0 %Lamina Interaction Ratio n121
         laminaIR122 (1,1) double {mustBeFloat} = 0 %Lamina Interaction Ratio n122
 
-        n (1,1) double {mustBeFloat} = 0 %Dimensionless constant used in shear lag theory
-        s (1,1) double {mustBeFloat} = 0 %Reinforcement aspect ratio
-        st (1,1) double {mustBeFloat} = 0 %Stress transfer ratio, applicable for short fibres only
-        srm (1,1) double {mustBeFloat} = 0 %Aspect ratio which maximises stiffness, i.e. where Rule of Mixtures is observed (for short fibres)
-        modifiedE (1,1) double {mustBeFloat} = 0 %E'm value used in the modified shear lag theory
+        n (1,1) double {mustBeFloat} = -Inf %Dimensionless constant used in shear lag theory
+        s (1,1) double {mustBeFloat} = -Inf %Reinforcement aspect ratio
+        st (1,1) double {mustBeFloat} = -Inf %Stress transfer ratio, applicable for short fibres only
+        srm (1,1) double {mustBeFloat} = -Inf %Aspect ratio which maximises stiffness, i.e. where Rule of Mixtures is observed (for short fibres)
+        sc (1,1) double {mustBeFloat} = -Inf %Aspect ratio below which no further fibre fracture is possible
+        Lc (1,1) double {mustBeFloat} = -Inf %Critical fibre length, elow which no further fibre fracture can occur
+        modifiedE (1,1) double {mustBeFloat} = -Inf %E'm value used in the modified shear lag theory
+        criticalInterfacialShearStress (1,1) double {mustBeFloat} = -Inf %The critical value of shear stress where plasticity will start to occur
+        criticalStress (1,1) double {mustBeFloat} = -Inf %The critical value of stress in fibre direction where plasticity will start to occur
     end
 
     properties
@@ -51,11 +55,48 @@ classdef CompositeLamina < handle
             obj.compositeComponents = CC;
         end
 
+        function criticalInterfacialShearStress = get.criticalInterfacialShearStress(obj)
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                Ef = obj.compositeComponents.reinforcementE1;
+                critStrain = obj.compositeComponents.criticalStrain;
+                criticalInterfacialShearStress = (obj.n*Ef*critStrain*tanh(obj.n*obj.s))/2;
+            end
+        end
+
+        function criticalStress = get.criticalStress(obj)
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                Ef = obj.compositeComponents.reinforcementE1;
+                Em = obj.compositeComponents.matrixE1;
+                critShear = obj.criticalInterfacialShearStress;
+                ff = obj.fibre_fraction;
+
+                criticalStress = ((2*critShear)/(obj.n*Ef))*...
+                    ((ff*Ef + (1-ff)*Em)*coth(obj.n*obj.s) - (ff*Ef)/(obj.n*obj.s));
+            end
+        end
+
         function modifiedE = get.modifiedE(obj)
-            %Calculate E'm value, used in the modified shear lag theory
-            Ef = obj.compositeComponents.reinforcementE1;
-            Em = obj.compositeComponents.matrixE1;
-            modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                %Calculate E'm value, used in the modified shear lag theory
+                Ef = obj.compositeComponents.reinforcementE1;
+                Em = obj.compositeComponents.matrixE1;
+                modifiedE = (Ef*(1-sech(obj.n*obj.s))+Em)/2;
+            end
+        end
+
+        function Lc = get.Lc(obj)
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                fibrestressfu = obj.compositeComponents.reinforcementFailureStress;
+                r = obj.compositeComponents.r;
+                intshear = obj.criticalInterfacialShearStress;
+                Lc = (fibrestressfu*r)/(2*intshear);
+            end
+        end
+
+        function sc = get.sc(obj)
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                sc = obj.Lc/obj.compositeComponents.r;
+            end
         end
 
         function laminaE1 = get.laminaE1(obj)
@@ -149,25 +190,33 @@ classdef CompositeLamina < handle
         end
 
         function n = get.n(obj)
-            %Calculate constant used in shear lag theory
-            n = sqrt((2*obj.compositeComponents.matrixE1)/...
-                (obj.compositeComponents.reinforcementE1*...
-                (1+obj.compositeComponents.matrixv12)*log(1/obj.fibre_fraction)));
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                %Calculate constant used in shear lag theory
+                n = sqrt((2*obj.compositeComponents.matrixE1)/...
+                    (obj.compositeComponents.reinforcementE1*...
+                    (1+obj.compositeComponents.matrixv12)*log(1/obj.fibre_fraction)));
+            end
         end
 
         function s = get.s(obj)
-            %Calculate aspect ratio of reinforcement material
-            s = obj.compositeComponents.L/obj.compositeComponents.r;
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                %Calculate aspect ratio of reinforcement material
+                s = obj.compositeComponents.L/obj.compositeComponents.r;
+            end
         end
 
         function st = get.st(obj)
-            %calculate stress transfer ratio. The minimum aspect ratio for
-            %which maximum stress is achieved in some point of the fibres
-            st = 3/obj.n;
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                %calculate stress transfer ratio. The minimum aspect ratio for
+                %which maximum stress is achieved in some point of the fibres
+                st = 3/obj.n;
+            end
         end
 
         function srm = get.srm(obj)
-            srm = 10/obj.n;
+            if strcmp(obj.compositeComponents.reinforcement_type,"short fibres")
+                srm = 10/obj.n;
+            end
         end
 
         function S = get.S(obj)

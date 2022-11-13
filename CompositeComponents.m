@@ -5,6 +5,12 @@ classdef CompositeComponents < handle
     %   For now this class is very simple and can only work with materials
     %   that are isotropic. I plan to add support for anisotropic materials
     %   later on.
+
+    properties (SetAccess = private)
+        criticalStrain (1,1) double {mustBeFloat} = 0 %The critical value of strain where plasticity will start to occur
+        reinforcementFailureStress (1,1) double {mustBeFloat} = 0 %Stress where reinforcement fails
+        matrixFailureStress (1,1) double {mustBeFloat} = 0 %Stress where matrix fails
+    end
     
     properties 
         reinforcementE1 (1,1) double {mustBeFloat} = 0 %Reinforcement young's modulus
@@ -15,6 +21,8 @@ classdef CompositeComponents < handle
         matrixG12 (1,1) double {mustBeFloat} = 0 %Matrix shear modulus
         reinforcementK (1,1) double {mustBeFloat} = 0 %Reinforcement bulk modulus
         matrixK (1,1) double {mustBeFloat} = 0 %Matrix bulk modulus
+        reinforcementFailureStrain (1,1) double {mustBeFloat} = 0 %Strain when reinforcement fails
+        matrixFailureStrain (1,1) double {mustBeFloat} = 0 %Strain where matrix fails
         
         reinforcement_density (1,1) double {mustBeFloat} = 0 %Reinforcement material density
         matrix_denisty (1,1) double {mustBeFloat} = 0 %Matrix material density
@@ -94,6 +102,21 @@ classdef CompositeComponents < handle
                     obj.reinforcementK = varargin{7};
                     obj.matrixK = varargin{8};
             end
+        end
+
+        function criticalStrain = get.criticalStrain(obj)
+            criticalStrain = min([obj.reinforcementFailureStrain obj.matrixFailureStrain]);
+            if criticalStrain == 0
+                criticalStrain = 0.001;
+            end
+        end
+
+        function reinforcementFailureStress = get.reinforcementFailureStress(obj)
+            reinforcementFailureStress = obj.reinforcementFailureStrain*obj.reinforcementE1*100; %Count on the unit difference
+        end
+
+        function matrixFailureStress = get.matrixFailureStress(obj)
+            matrixFailureStress = obj.matrixFailureStrain*obj.matrixE1*100;
         end
         
         function obj = calc_property(obj, reinforcement_or_matrix, property)
@@ -219,17 +242,24 @@ classdef CompositeComponents < handle
                     obj.reinforcement_type = length;
                     obj.reinforcementE1 = 72;
                     obj.reinforcement_density = 2.44;
+                    obj.reinforcementFailureStrain = 0.048;
+                    obj.calc_property('reinforcement','G');
+                    obj.calc_property('reinforcement','K');
                 case 'C-glass fibres'
                     %https://textilelearner.net/glass-fiber-types-properties/
                     obj.reinforcement_type = length;
                     obj.reinforcementE1 = 69;
                     obj.reinforcement_density = 2.56;
+                    obj.reinforcementFailureStrain = 0.048;
+                    obj.calc_property('reinforcement','G');
+                    obj.calc_property('reinforcement','K');
                 case 'E-glass fibres'
                     %https://www.researchgate.net/figure/Physical-and-mechanical-properties-of-glass-fiber_tbl2_265346634
                     obj.reinforcement_type = length;
                     obj.reinforcementE1 = 72.3;
                     obj.reinforcement_density = 2.58;
                     obj.reinforcementv12 = 0.2;
+                    obj.reinforcementFailureStrain = 0.048;
                     obj.calc_property('reinforcement','G');
                     obj.calc_property('reinforcement','K');
                 case 'S2-glass fibres'
@@ -238,6 +268,7 @@ classdef CompositeComponents < handle
                     obj.reinforcementE1 = 86.9;
                     obj.reinforcement_density = 2.46;
                     obj.reinforcementv12 = 0.22;
+                    obj.reinforcementFailureStrain = 0.058;
                     obj.calc_property('reinforcement','G');
                     obj.calc_property('reinforcement','K');
             end
